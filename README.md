@@ -1,2 +1,2 @@
-# FullStack
-FullStack course uottawa
+# Readme
+A readme markdown file for a test Flask project

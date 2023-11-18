@@ -39,4 +39,4 @@ stages:
               azureResourceGroup: 'MyAksResGrp'  # Specify the Azure resource group
               kubernetesCluster: 'MyAksCluster'  # Specify the Kubernetes cluster
               command: apply  # Apply the Kubernetes manifests
-              arguments: '-f k8s/deployment.yaml'  # Path to the deployment manifest
+              arguments: '-f k8s/deployment.yml'  # Path to the deployment manifest

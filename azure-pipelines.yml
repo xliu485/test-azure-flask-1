@@ -16,8 +16,8 @@ stages:
               command: build  # Build a Docker image
               repository: myctnreg5300/flask-app  # Specify the repository for the image
               dockerfile: '**/Dockerfile'  # Path to the Dockerfile
-              tags:
-                - latest
+              tags: |
+                latest
           - task: PublishBuildArtifacts@1  # Publish the k8s directory as an artifact
             inputs:
               PathtoPublish: '$(Build.SourcesDirectory)/k8s'

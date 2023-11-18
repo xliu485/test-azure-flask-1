@@ -1,42 +1,45 @@
 trigger:
-- master  # Trigger the pipeline when changes are pushed to the 'master' branch
+  - master  # Trigger the pipeline when changes are pushed to the 'master' branch
 
 resources:
-- repo: self  # Use the current repository as a resource
+  - repo: self  # Use the current repository as a resource
 
 stages:
-- stage: Build  # Define a stage named 'Build'
-  jobs:
-  - job: BuildImage  # Define a job named 'BuildImage'
-    pool:
-      vmImage: 'ubuntu-latest'  # Use an Ubuntu-based agent for the job
-    steps:
-    - task: Docker@2  # Use the Docker task
-      inputs:
-        command: build  # Build a Docker image
-        repository: myctnreg5300/flask-app  # Specify the repository for the image
-        dockerfile: '**/Dockerfile'  # Path to the Dockerfile
-        tags: |
-          latest
-        # Tag the image as 'latest'
-
-- stage: Deploy  # Define a stage named 'Deploy'
-  dependsOn: Build  # Make sure the 'Build' stage is completed successfully before deploying
-  condition: succeeded('Build')  # Deploy only if the 'Build' stage succeeded
-  jobs:
-  - deployment: DeployToK8s  # Define a deployment job named 'DeployToK8s'
-    environment: 'MyAksCluster'  # Define the target environment as 'MyAksCluster'
-    pool:
-      vmImage: 'ubuntu-latest'  # Use an Ubuntu-based agent for the job
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: Kubernetes@1  # Use the Kubernetes task
+  - stage: Build  # Define a stage named 'Build'
+    jobs:
+      - job: BuildImage  # Define a job named 'BuildImage'
+        pool:
+          vmImage: 'ubuntu-latest'  # Use an Ubuntu-based agent for the job
+        steps:
+          - task: Docker@2  # Use the Docker task
             inputs:
-              connectionType: 'Azure Resource Manager'  # Use Azure Resource Manager for the connection
-              azureSubscriptionEndpoint: 'DevOpsConnectionToAzurePortal'  # Specify the Azure subscription endpoint
-              azureResourceGroup: 'MyAksResGrp'  # Specify the Azure resource group
-              kubernetesCluster: 'MyAksCluster'  # Specify the Kubernetes cluster
-              command: apply  # Apply the Kubernetes manifests
-              arguments: '-f k8s/deployment.yml'  # Path to the deployment manifest
+              command: build  # Build a Docker image
+              repository: myctnreg5300/flask-app  # Specify the repository for the image
+              dockerfile: '**/Dockerfile'  # Path to the Dockerfile
+              tags: |
+                latest
+              # Tag the image as 'latest'
+
+  - stage: Deploy  # Define a stage named 'Deploy'
+    dependsOn: Build  # Make sure the 'Build' stage is completed successfully before deploying
+    condition: succeeded('Build')  # Deploy only if the 'Build' stage succeeded
+    jobs:
+      - deployment: DeployToK8s  # Define a deployment job named 'DeployToK8s'
+        environment: 'MyAksCluster'  # Define the target environment as 'MyAksCluster'
+        pool:
+          vmImage: 'ubuntu-latest'  # Use an Ubuntu-based agent for the job
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: Kubernetes@1  # Use the Kubernetes task
+                  inputs:
+                    connectionType: 'Azure Resource Manager'  # Use Azure Resource Manager for the connection
+                    azureSubscriptionEndpoint: 'DevOpsConnectionToAzurePortal'  # Specify the Azure subscription endpoint
+                    azureResourceGroup: 'MyAksResGrp'  # Specify the Azure resource group
+                    kubernetesCluster: 'MyAksCluster'  # Specify the Kubernetes cluster
+                    command: apply  # Apply the Kubernetes manifests
+                    arguments: '-f k8s/deployment.yml'  # Path to the deployment manifest
+
+                - script: ls -la $(Build.SourcesDirectory)/k8s/  # Add the script task to list files in the 'k8s' directory
+                  displayName: 'List files in k8s directory'

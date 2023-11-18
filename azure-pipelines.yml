@@ -17,7 +17,8 @@ stages:
         repository: myctnreg5300/flask-app  # Specify the repository for the image
         dockerfile: '**/Dockerfile'  # Path to the Dockerfile
         tags: |
-          latest  # Tag the image as 'latest'
+          latest
+        # Tag the image as 'latest'
 
 - stage: Deploy  # Define a stage named 'Deploy'
   dependsOn: Build  # Make sure the 'Build' stage is completed successfully before deploying

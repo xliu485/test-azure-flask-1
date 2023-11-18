@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-app  # Name of the deployment
+spec:
+  replicas: 1  # Number of desired replicas
+  selector:
+    matchLabels:
+      app: flask-app  # Selecting pods with the label 'app: flask-app'
+  template:
+    metadata:
+      labels:
+        app: flask-app  # Label for the pods in the deployment
+    spec:
+      containers:
+        - name: flask-app  # Name of the container
+          image: myctnreg5300.azurecr.io/flask-app:latest  # Docker image for the container
+          ports:
+            - containerPort: 80  # Port on which the container listens
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flask-app-service  # Name of the service
+spec:
+  type: LoadBalancer  # Type of the service, in this case, a LoadBalancer
+  ports:
+    - port: 80  # Port exposed by the service
+  selector:
+    app: flask-app  # Selecting pods with the label 'app: flask-app'

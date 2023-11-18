@@ -11,18 +11,27 @@ stages:
         pool:
           vmImage: 'ubuntu-latest'  # Use an Ubuntu-based agent for the job
         steps:
-          - task: Docker@2  # Use the Docker task
+          - task: Docker@2  # Use the Docker task to build the image
             inputs:
-              command: build  # Build a Docker image
-              repository: myctnreg5300/flask-app  # Specify the repository for the image
-              dockerfile: '**/Dockerfile'  # Path to the Dockerfile
+              command: build
+              repository: myctnreg5300.azurecr.io/flask-app  # Include the ACR login server name here
+              dockerfile: '**/Dockerfile'
               tags: |
                 latest
+
+          - task: Docker@2  # Use the Docker task to push the image
+            inputs:
+              command: push
+              repository: myctnreg5300.azurecr.io/flask-app  # Include the ACR login server name here
+              tags: |
+                latest
+
           - task: PublishBuildArtifacts@1  # Publish the k8s directory as an artifact
             inputs:
               PathtoPublish: '$(Build.SourcesDirectory)/k8s'
               ArtifactName: 'k8s'
               publishLocation: 'Container'
+
           - script: ls -la $(Build.SourcesDirectory)/k8s/  # List files in the 'k8s' directory
             displayName: 'List files in k8s directory'
 
@@ -44,6 +53,7 @@ stages:
                     downloadType: 'single'
                     artifactName: 'k8s'
                     downloadPath: '$(System.ArtifactsDirectory)'
+
                 - task: Kubernetes@1  # Use the Kubernetes task
                   inputs:
                     connectionType: 'Azure Resource Manager'

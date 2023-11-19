@@ -7,7 +7,7 @@ resources:
 variables:
   # Define variables for Docker image and ACR
   dockerRegistryServiceConnection: 'myACRServiceConnection'
-  azureResourceManagerServiceConnection: 'myAzureResoureManagerConnection'
+  kubernetesServiceConnection: 'myAKSServiceConnection'
   imageRepository: 'flask-app'
   containerRegistry: 'myctnreg5300.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
@@ -53,19 +53,15 @@ stages:
                 - task: Kubernetes@1
                   displayName: Set kubectl context
                   inputs:
-                    connectionType: Azure Resource Manager
-                    azureSubscriptionEndpoint: $(azureResourceManagerServiceConnection)
-                    azureResourceGroup: 'MyAksResGrp'
-                    kubernetesCluster: 'MyAksCluster'
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceEndpoint: $(kubernetesServiceConnection)
                     command: login
 
                 - task: Kubernetes@1
                   displayName: Deploy to Kubernetes
                   inputs:
-                    connectionType: Azure Resource Manager
-                    azureSubscriptionEndpoint: $(azureResourceManagerServiceConnection)
-                    azureResourceGroup: 'MyAksResGrp'
-                    kubernetesCluster: 'MyAksCluster'
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceEndpoint: $(kubernetesServiceConnection)
                     command: apply
                     arguments: '-f $(Pipeline.Workspace)/k8s_files/deployment.yml'
                     secretType: dockerRegistry

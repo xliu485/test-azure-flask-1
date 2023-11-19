@@ -22,6 +22,7 @@ stages:
           - task: Docker@2  # Use the Docker task to push the image
             inputs:
               command: push
+              containerRegistry: 'DevOpsConnectionToAzurePortal'
               repository: myctnreg5300.azurecr.io/flask-app  # Include the ACR login server name here
               tags: |
                 latest

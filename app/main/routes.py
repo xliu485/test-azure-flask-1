@@ -5,6 +5,9 @@ from openai import OpenAI
 import os
 
 # client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+# 为了使程序跑起来，这里把这句注释掉，这样它就不尝试用从系统里找这个环境变量了。
+# 实际使用时需要你自己在OpenAI搞一个key，加载系统变量里。当然你也可以在这里
+# 直接填上，即硬编码，但显然不推荐
 
 @bp.route('/')
 @login_required

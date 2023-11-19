@@ -11,7 +11,8 @@ variables:
   imageRepository: 'flask-app'
   containerRegistry: 'myctnreg5300.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
-  tag: '$(Build.BuildId)'
+  #tag: '$(Build.BuildId)'
+  tag: 'latest'
 
 stages:
   - stage: Build

@@ -1,65 +1,69 @@
 trigger:
-  - master  # Trigger the pipeline when changes are pushed to the 'master' branch
+- master
 
 resources:
-  - repo: self  # Use the current repository as a resource
+- repo: self
+
+variables:
+  # Define variables for Docker image and ACR
+  dockerRegistryServiceConnection: 'myAzurePortalConnection'
+  imageRepository: 'flask-app'
+  containerRegistry: 'myctnreg5300.azurecr.io'
+  dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
+  tag: '$(Build.BuildId)'
 
 stages:
-  - stage: Build  # Define a stage named 'Build'
-    jobs:
-      - job: BuildImageAndPushItToACR  # Define a job name
-        pool:
-          vmImage: 'ubuntu-latest'  # Use an Ubuntu-based agent for the job
+- stage: Build
+  displayName: Build image
+  jobs:  
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: Docker@2
+      displayName: Build and push an image to container registry
+      inputs:
+        command: buildAndPush
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(tag)
+
+- stage: Deploy
+  displayName: Deploy to Kubernetes
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: 'Development'
+    pool:
+      vmImage: 'ubuntu-latest'
+    strategy:
+      runOnce:
+        deploy:
           steps:
-            - task: Docker@2
-              displayName: 'Login to ACR'
-              inputs:
-                command: login
-                containerRegistry: 'myACRServiceConnection'
+          - task: Kubernetes@1
+            displayName: Set kubectl context
+            inputs:
+              connectionType: Azure Resource Manager
+              azureSubscriptionEndpoint: $(dockerRegistryServiceConnection)
+              azureResourceGroup: 'MyAksResGrp'
+              kubernetesCluster: 'MyAksCluster'
+              command: login
 
-            - task: Docker@2
-              displayName: 'Build and push Docker image'
-              inputs:
-                containerRegistry: 'myACRServiceConnection'
-                repository: 'myctnreg5300.azurecr.io/flask-app'
-                command: buildAndPush
-                Dockerfile: '**/Dockerfile'
-                tags: |
-                  latest
-
-            - task: PublishBuildArtifacts@1  # Publish the k8s directory as an artifact
-              inputs:
-                PathtoPublish: '$(Build.SourcesDirectory)/k8s'
-                ArtifactName: 'k8s'
-                publishLocation: 'Container'
-
-            - script: ls -la $(Build.SourcesDirectory)/k8s/  # List files in the 'k8s' directory
-              displayName: 'List files in k8s directory'
-
-  - stage: Deploy  # Define a stage named 'Deploy'
-    dependsOn: Build  # Depend on 'Build' stage
-    condition: succeeded('Build')  # Run only if 'Build' succeeded
-    jobs:
-      - deployment: DeployToK8s  # Define a deployment job
-        environment: 'MyAksCluster'  # Target environment
-        pool:
-          vmImage: 'ubuntu-latest'  # Use an Ubuntu-based agent
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: DownloadBuildArtifacts@0  # Download the k8s directory artifact
-                  inputs:
-                    buildType: 'current'
-                    downloadType: 'single'
-                    artifactName: 'k8s'
-                    downloadPath: '$(System.ArtifactsDirectory)'
-
-                - task: Kubernetes@1  # Use the Kubernetes task
-                  inputs:
-                    connectionType: 'Azure Resource Manager'
-                    azureSubscriptionEndpoint: 'myAzurePortalConnection'
-                    azureResourceGroup: 'MyAksResGrp'
-                    kubernetesCluster: 'MyAksCluster'
-                    command: apply
-                    arguments: '-f $(System.ArtifactsDirectory)/k8s/deployment.yml'  # Correct path to the deployment file
+          - task: Kubernetes@1
+            displayName: Deploy to Kubernetes
+            inputs:
+              connectionType: Azure Resource Manager
+              azureSubscriptionEndpoint: $(dockerRegistryServiceConnection)
+              azureResourceGroup: 'MyAksResGrp'
+              kubernetesCluster: 'MyAksCluster'
+              command: apply
+              arguments: '-f $(Build.SourcesDirectory)/k8s/deployment.yml'
+              secretType: dockerRegistry
+              containerRegistryType: Azure Container Registry
+              containerRegistry: $(containerRegistry)
+              namespace: default

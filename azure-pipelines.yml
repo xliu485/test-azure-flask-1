@@ -1,8 +1,8 @@
 trigger:
-- master
+  - master
 
 resources:
-- repo: self
+  - repo: self
 
 variables:
   # Define variables for Docker image and ACR
@@ -14,57 +14,61 @@ variables:
   tag: '$(Build.BuildId)'
 
 stages:
-- stage: Build
-  displayName: Build image
-  jobs:  
-  - job: Build
-    displayName: Build
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - task: Docker@2
-      displayName: Build and push an image to container registry
-      inputs:
-        command: buildAndPush
-        repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
-        containerRegistry: $(dockerRegistryServiceConnection)
-        tags: |
-          $(tag)
-
-- stage: Deploy
-  displayName: Deploy to Kubernetes
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - deployment: Deploy
-    displayName: Deploy
-    environment: 'Development'
-    pool:
-      vmImage: 'ubuntu-latest'
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - task: Kubernetes@1
-            displayName: Set kubectl context
+  - stage: Build
+    displayName: Build image
+    jobs:
+      - job: Build
+        displayName: Build
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: Docker@2
+            displayName: Build and push an image to container registry
             inputs:
-              connectionType: Azure Resource Manager
-              azureSubscriptionEndpoint: $(azureResourceManagerServiceConnection)
-              azureResourceGroup: 'MyAksResGrp'
-              kubernetesCluster: 'MyAksCluster'
-              command: login
+              command: buildAndPush
+              repository: $(imageRepository)
+              dockerfile: $(dockerfilePath)
+              containerRegistry: $(dockerRegistryServiceConnection)
+              tags: |
+                $(tag)
+          - publish: $(Build.SourcesDirectory)/k8s
+            artifact: k8s_files
 
-          - task: Kubernetes@1
-            displayName: Deploy to Kubernetes
-            inputs:
-              connectionType: Azure Resource Manager
-              azureSubscriptionEndpoint: $(azureResourceManagerServiceConnection)
-              azureResourceGroup: 'MyAksResGrp'
-              kubernetesCluster: 'MyAksCluster'
-              command: apply
-              arguments: '-f $(Build.SourcesDirectory)/k8s/deployment.yml'
-              secretType: dockerRegistry
-              containerRegistryType: Azure Container Registry
-              containerRegistry: $(containerRegistry)
-              namespace: default
+  - stage: Deploy
+    displayName: Deploy to Kubernetes
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy
+        displayName: Deploy
+        environment: 'Development'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: k8s_files
+                - task: Kubernetes@1
+                  displayName: Set kubectl context
+                  inputs:
+                    connectionType: Azure Resource Manager
+                    azureSubscriptionEndpoint: $(azureResourceManagerServiceConnection)
+                    azureResourceGroup: 'MyAksResGrp'
+                    kubernetesCluster: 'MyAksCluster'
+                    command: login
+
+                - task: Kubernetes@1
+                  displayName: Deploy to Kubernetes
+                  inputs:
+                    connectionType: Azure Resource Manager
+                    azureSubscriptionEndpoint: $(azureResourceManagerServiceConnection)
+                    azureResourceGroup: 'MyAksResGrp'
+                    kubernetesCluster: 'MyAksCluster'
+                    command: apply
+                    arguments: '-f $(Pipeline.Workspace)/k8s_files/deployment.yml'
+                    secretType: dockerRegistry
+                    containerRegistryType: Azure Container Registry
+                    containerRegistry: $(containerRegistry)
+                    namespace: default

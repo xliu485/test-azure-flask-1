@@ -7,7 +7,7 @@ resources:
 variables:
   # Define variables for Docker image and ACR
   dockerRegistryServiceConnection: 'myACRServiceConnection'
-  azureResourceManagerServiceConnection: 'myAzurePortalConnection'
+  azureResourceManagerServiceConnection: 'myAzureResoureManagerConnection'
   imageRepository: 'flask-app'
   containerRegistry: 'myctnreg5300.azurecr.io'
   dockerfilePath: '$(Build.SourcesDirectory)/Dockerfile'
